@@ -1,47 +1,197 @@
-const API_KEY = '7d35a96776msh173b8e3144a5b31p121fe8jsnf7d07fc26f37';
+const API_KEY = '4b759b46f2311df7fa3bc51a3ea605c4';
 const image = 'https://image.tmdb.org/t/p/w500';
+const image_path = `https://image.tmdb.org/t/p/w1280`
+
 
 const input = document.querySelector('.search input');
 const btn = document.querySelector('.search button');
 const main_grid_title = document.querySelector('.favorites h1');
-const main_grid = document.querySelector('favorites .movies-grid');
+const main_grid = document.querySelector('.favorites .movies-grid');
+const popup_container = document.querySelector('.popup-container');
 
 
-function get_movie_by_search(search_term){
-    const options = {
-        method: 'GET',
-        headers: {
-            'X-RapidAPI-Key': API_KEY,
-            'X-RapidAPI-Host': 'ott-details.p.rapidapi.com'
-        }
-    };
-    
-    fetch(`https://ott-details.p.rapidapi.com/search?title=${search_term}&page=1`, options)
-        .then(response => response.json())
-        .then(response => {
-            for(let i = 0; i < response.results.length; i++){
-                const movie = response.results[i].title;
-                console.log(movie);
-            }
-
-            // const thistitle = response
-            // console.log(thistitle);
-        })
-        .catch(err => console.error(err));
+function add_card_click_effects(cards) {
+    cards.forEach(card => {
+        card.addEventListener('click', () => show_popup(card))
+    });
+}
+// search movies function
+async function get_movie_by_search(search_term) {
+    const resp = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${search_term}`)
+    const respData = await resp.json()
+    return respData.results
 }
 
+btn.addEventListener('click', add_searched_movies_to_dom)
 
+async function add_searched_movies_to_dom() {
+    const data = await get_movie_by_search(input.value)
 
+    main_grid_title.innerText = `Search Results...`
+    main_grid.innerHTML = data.map(e => {
+        return `
+            <div class="card" data-id="${e.id}">
+                <div class="img">
+                    <img src="${image_path + e.poster_path}">
+                </div>
+                <div class="info">
+                    <h2>${e.title}</h2>
+                    <div class="single-info">
+                        <span>Rate: </span>
+                        <span>${e.vote_average} / 10</span>
+                    </div>
+                    <div class="single-info">
+                        <span>Release Date: </span>
+                        <span>${e.release_date}</span>
+                    </div>
+                </div>
+            </div>
+        `
+    }).join('')
 
+    const cards = document.querySelectorAll('.card')
+    add_card_click_effects(cards)
+}
+// search by id
 
+async function get_movie_by_id(id) {
+    const resp = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${API_KEY}`)
+    const respData = await resp.json()
+    return respData
+}
+async function get_movie_trailer(id) {
+    const resp = await fetch(`https://api.themoviedb.org/3/movie/${id}/videos?api_key=${API_KEY}`)
+    const respData = await resp.json()
+    return respData.results[0].key
+}
 
+async function show_popup(card) {
+    popup_container.classList.add('show-popup')
 
-btn.addEventListener('click', add_searched_movie_to_dom);
-function add_searched_movie_to_dom(){
-    const data=input.value;
-    get_movie_by_search(data);
-    console.log(data);
+    const movie_id = card.getAttribute('data-id')
+    const movie = await get_movie_by_id(movie_id)
+    console.log(movie);
+    const movie_trailer = await get_movie_trailer(movie_id)
+    popup_container.style.background = `linear-gradient(rgba(0, 0, 0, .73), rgba(0, 0, 0, 1)), url(${image_path + movie.poster_path})`
+    popup_container.innerHTML = `
+    <span class="x-icon">
+    &#10006;
+</span>
+<div class="content">
+    <div class="left">
+        <div class="poster-img">
+            <img src="${image_path + movie.poster_path}" alt="">
+        </div>
+        <div class="single-info">
+            <span>Add to Favorites</span>
+            <span class="heart-icon">&#9829;</span>
+        </div>
 
+    </div>
+    <div class="right">
+        <h1>${movie.title}</h1>
+        <h3>${movie.tagline}</h3>
+        <div class="single-info-container">
+            <div class="single-info">
+                <span>Language:</span>
+                <span>${movie.spoken_languages[0].name}</span>
+            </div>
+            <div class="single-info">
+                <span>Length:</span>
+                <span>${movie.runtime}</span>
+            </div>
+            <div class="single-info">
+                <span>Rate:</span>
+                <span>${movie.vote_average}/10</span>
+            </div>
+            <div class="single-info">
+                <span>Budget:</span>
+                <span>$ ${movie.budget}</span>
+            </div>
+            <div class="single-info">
+                <span>Release Date:</span>
+                <span>${movie.release_date}</span>
+            </div>
+        </div>
+        <div class="genres">
+            <h2>Genres</h2>
+            <ul>
+                ${movie.genres.map(e=> `<li>${e.name}</li>`).join('')}
+            </ul>
 
-    main_grid_title.innerHTML = `Search results...`;
+        </div>
+        <div class="overview">
+            <h2>Overview</h2>
+            <p>
+            ${movie.overview}
+            </p>
+        </div>
+        <div class="trailer">
+            <h2>Trailer</h2>
+            <iframe width="560" height="315" src="https://www.youtube.com/embed/${movie_trailer}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+         
+    </div>
+</div>
+    `
+const x_icon = document.querySelector('.x-icon')
+x_icon.addEventListener('click', () => popup_container.classList.remove('show-popup'))
+const heart_icon = popup_container.querySelector('.heart-icon')
+heart_icon.addEventListener('click', ()=>{
+    if(heart_icon.classList.contains('change-color')){
+        remove_from_LS(movie_id)
+        heart_icon.classList.remove('change-color')
+    }
+    else{
+        add_to_LS(movie_id)
+        heart_icon.classList.add('change-color')
+    }
+    fetch_favorite_movies()
+})
+}
+
+function get_LS(){
+    const movie_ids = JSON.parse(localStorage.getItem('movie-id'))
+    return movie_ids === null ? [] : movie_ids
+}
+function add_to_LS(id){
+    const movie_ids = get_LS()
+    localStorage.setItem('movie-id', JSON.stringify([...movie_ids, id]))
+}
+
+function remove_from_LS(id){
+    const movie_ids = get_LS()
+    localStorage.setItem('movie-id', JSON.stringify(movie_ids.filter(e=> e !== id)))
+}
+fetch_favorite_movies()
+async function fetch_favorite_movies(){
+    main_grid.innerHTML=''
+    const movies_LS = await get_LS()
+    const movies = []
+    for(let i = 0; i < movies_LS.length -1; i++){
+        const movie_id = movies_LS[i]
+        let movie = await get_movie_by_id(movie_id)
+        add_favorite_to_dom_from_LS(movie)
+        movies.push(movie)
+    }
+}
+function add_favorite_to_dom_from_LS(movie_data){
+       main_grid.innerHTML += `
+       <div class="card" data-id="${movie_data.id}">
+                <div class="img">
+                    <img src="${image_path + movie_data.poster_path}">
+                </div>
+                <div class="info">
+                    <h2>${movie_data.title}</h2>
+                    <div class="single-info">
+                        <span>Rate: </span>
+                        <span>${movie_data.vote_average} / 10</span>
+                    </div>
+                    <div class="single-info">
+                        <span>Release Date: </span>
+                        <span>${movie_data.release_date}</span>
+                    </div>
+                </div>
+            </div>
+       `
 }
