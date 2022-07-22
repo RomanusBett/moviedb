@@ -212,4 +212,10 @@ body{
         top: 10px;
         right: 20px;
     }
+    .search{
+        flex-direction: column;
+    }
+    .navbar{
+        justify-content: center;
+    }
 }
