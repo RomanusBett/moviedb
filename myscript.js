@@ -8,7 +8,7 @@ const btn = document.querySelector('.search button');
 const main_grid_title = document.querySelector('.favorites h1');
 const main_grid = document.querySelector('.favorites .movies-grid');
 const popup_container = document.querySelector('.popup-container');
-
+const trending_el = document.querySelector('.trending .movies-grid')
 
 function add_card_click_effects(cards) {
     cards.forEach(card => {
@@ -185,7 +185,7 @@ function add_favorite_to_dom_from_LS(movie_data){
                     <h2>${movie_data.title}</h2>
                     <div class="single-info">
                         <span>Rate: </span>
-                        <span>${movie_data.vote_average} / 10</span>
+                        <span>${Math.round(movie_data.vote_average)} / 10</span>
                     </div>
                     <div class="single-info">
                         <span>Release Date: </span>
@@ -194,4 +194,44 @@ function add_favorite_to_dom_from_LS(movie_data){
                 </div>
             </div>
        `
+       const card = document.querySelectorAll('.card')
+       add_card_click_effects(card)
+}
+
+get_trending_movies()
+
+
+async function get_trending_movies() {
+    const resp = await fetch(`https://api.themoviedb.org/3/trending/all/day?api_key=${API_KEY}`)
+    const respData = await resp.json()
+    return respData.results
+}
+add_dom_to_trending()
+async function add_dom_to_trending(){
+    const data = await get_trending_movies()
+    console.log(data);
+
+    trending_el.innerHTML = data.slice(0, 15).map(e=> {
+        return `
+        <div class="card" data-id="${e.id}">
+        <div class="img">
+            <img src="${image_path + e.poster_path}">
+        </div>
+        <div class="info">
+            <h2>${e.title}</h2>
+            <div class="single-info">
+                <span>Rate: </span>
+                <span>${Math.round(e.vote_average)} / 10</span>
+            </div>
+            <div class="single-info">
+                <span>Release Date: </span>
+                <span>${e.release_date}</span>
+            </div>
+        </div>
+    </div>
+        `
+    }).join('')
+    
+    const card = document.querySelectorAll('.card')
+    add_card_click_effects(card)
 }
